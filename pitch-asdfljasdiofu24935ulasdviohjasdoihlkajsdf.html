@@ -1,0 +1,1046 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>SmartSolve eQMS → Quality Dashboards | [Firm]</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600&family=IBM+Plex+Sans:wght@400;600;700&display=swap" rel="stylesheet">
+<style>
+:root {
+  --ink: #221b1c;
+  --panel: #34495e;
+  --paper: #faf9f9;
+  --line: #d2d6da;
+  --signal: #2ecc71;
+  --signal-bright: #58d68d;
+  --signal-deep: #229652;
+  --accent-blue: #3498db;
+  --accent-deep: #185d8b;
+  --alert: #805d93;
+  --alert-mid: #a98bc0;
+  --alert-bright: #c9b8d6;
+  --text-dark-muted: #aeb6bd;
+  --text-light-muted: #4a5560;
+  --bronze: #7a4e24;
+  --silver: #5f6b76;
+  --gold: #7d6415;
+}
+
+/* ===== Reset ============================================================ */
+*, *::before, *::after { box-sizing: border-box; }
+html, body { margin: 0; }
+body { padding: 0; }
+img { max-width: 100%; display: block; }
+
+/* ===== Base ============================================================= */
+html {
+  scroll-behavior: smooth;
+  scroll-padding-top: 34px; /* keep #anchors clear of the fixed status strip */
+}
+body {
+  padding-top: 34px; /* compensate for the fixed 34px status strip */
+  font-family: 'IBM Plex Sans', system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif;
+  font-weight: 400;
+  line-height: 1.6;
+  color: var(--ink);
+  background: var(--paper);
+  -webkit-font-smoothing: antialiased;
+  text-rendering: optimizeLegibility;
+}
+
+h1, h2, h3, h4 {
+  font-family: 'IBM Plex Sans', system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif;
+  font-weight: 700;
+  line-height: 1.15;
+  letter-spacing: -0.015em;
+  margin: 0 0 0.5em;
+}
+h2 { font-size: clamp(1.6rem, 3.2vw, 2.3rem); }
+h3 { font-size: 1.15rem; font-weight: 600; letter-spacing: -0.01em; }
+p { margin: 0 0 1rem; }
+p:last-child { margin-bottom: 0; }
+
+a { color: var(--accent-deep); text-decoration: none; }
+a:hover { text-decoration: underline; }
+
+/* ===== Layout =========================================================== */
+.container {
+  max-width: 1100px;
+  margin: 0 auto;
+  padding: 0 24px;
+  width: 100%;
+}
+.section { padding: 120px 0; }
+.band--light + .band--light,
+.band--dark + .band--dark { padding-top: 0; }
+
+/* ===== Bands ============================================================ */
+.band--dark {
+  background: var(--ink);
+  color: var(--text-dark-muted);
+}
+.band--dark h1,
+.band--dark h2,
+.band--dark h3,
+.band--dark h4 { color: var(--paper); }
+.band--dark p { color: var(--text-dark-muted); }
+.band--dark a:not(.btn) { color: var(--signal); }
+
+.band--light {
+  background: var(--paper);
+  color: var(--text-light-muted);
+}
+.band--light h1,
+.band--light h2,
+.band--light h3,
+.band--light h4 { color: var(--ink); }
+.band--light p { color: var(--text-light-muted); }
+.band--light a:not(.btn) { color: var(--accent-deep); }
+
+/* ===== Eyebrow ========================================================== */
+.eyebrow {
+  font-family: 'IBM Plex Mono', ui-monospace, SFMono-Regular, Menlo, monospace;
+  font-size: 0.72rem;
+  font-weight: 500;
+  text-transform: uppercase;
+  letter-spacing: 0.18em;
+  display: inline-flex;
+  align-items: center;
+  margin: 0 0 1.5rem;
+}
+.eyebrow::before {
+  content: "";
+  display: inline-block;
+  width: 28px;
+  height: 1px;
+  margin-right: 12px;
+  background: currentColor;
+  opacity: 0.85;
+}
+.band--dark .eyebrow { color: var(--signal); }
+.band--light .eyebrow { color: var(--accent-deep); }
+
+/* ===== Signature: live status strip ==================================== */
+.status-strip {
+  position: fixed;
+  top: 0; left: 0; right: 0;
+  z-index: 1000;
+  height: 34px;
+  display: flex;
+  align-items: center;
+  gap: 0.5ch;
+  padding: 0 20px;
+  background: var(--ink);
+  color: var(--text-dark-muted);
+  font-family: 'IBM Plex Mono', ui-monospace, SFMono-Regular, Menlo, monospace;
+  font-size: 0.68rem;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  border-bottom: 1px solid rgba(174, 182, 189, 0.14);
+}
+.status-strip .status-dot { margin-left: 0.4ch; }
+
+.status-dot {
+  display: inline-block;
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: var(--signal);
+  animation: status-pulse 2s ease-in-out infinite;
+  flex: none;
+}
+@keyframes status-pulse {
+  0%, 100% {
+    opacity: 1;
+    box-shadow: 0 0 0 0 rgba(46, 204, 113, 0.55);
+    transform: scale(1);
+  }
+  50% {
+    opacity: 0.6;
+    box-shadow: 0 0 0 4px rgba(46, 204, 113, 0);
+    transform: scale(0.92);
+  }
+}
+
+/* ===== Hero ============================================================= */
+.hero-headline {
+  font-size: clamp(2rem, 5vw, 3.4rem);
+  font-weight: 700;
+  line-height: 1.1;
+  letter-spacing: -0.02em;
+  margin: 0 0 1.25rem;
+}
+.hero-sub {
+  font-size: clamp(1.05rem, 1.6vw, 1.25rem);
+  max-width: 62ch;
+  margin: 0 0 2rem;
+}
+
+/* ===== Button =========================================================== */
+.btn {
+  display: inline-block;
+  background: var(--signal);
+  color: var(--ink);
+  font-family: 'IBM Plex Sans', system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif;
+  font-weight: 600;
+  font-size: 0.98rem;
+  line-height: 1;
+  padding: 0.85em 1.5em;
+  border: none;
+  border-radius: 6px;
+  text-decoration: none;
+  cursor: pointer;
+  transition: transform .18s ease, box-shadow .18s ease, filter .18s ease;
+}
+.btn:hover {
+  filter: brightness(0.93);
+  transform: translateY(-1px);
+  box-shadow: 0 6px 18px rgba(46, 204, 113, 0.28);
+  text-decoration: none;
+}
+.btn:active { transform: translateY(0); }
+
+/* ===== Integration: architecture flow ================================== */
+.arch {
+  display: flex;
+  align-items: stretch;
+  gap: 0;
+  margin: 2.5rem 0;
+  flex-wrap: nowrap;
+}
+.arch-node {
+  flex: 1 1 0;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  padding: 1.1rem 1.15rem;
+  background: var(--paper);
+  min-width: 0;
+}
+.arch-node-title {
+  font-family: 'IBM Plex Sans', system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif;
+  font-weight: 600;
+  font-size: 1rem;
+  color: var(--ink);
+  margin-bottom: 0.3rem;
+}
+.arch-node-sub {
+  font-family: 'IBM Plex Mono', ui-monospace, SFMono-Regular, Menlo, monospace;
+  font-size: 0.72rem;
+  letter-spacing: 0.03em;
+  color: var(--text-light-muted);
+  line-height: 1.4;
+}
+.arch-arrow {
+  flex: 0 0 auto;
+  align-self: center;
+  padding: 0 0.9rem;
+  font-size: 1.4rem;
+  line-height: 1;
+  color: var(--accent-deep);
+  user-select: none;
+}
+.arch-node--warehouse { flex: 1.5 1 0; }
+.arch-layers {
+  display: grid;
+  gap: 0.3rem;
+  margin-top: 0.65rem;
+}
+.arch-layer {
+  font-family: 'IBM Plex Mono', ui-monospace, SFMono-Regular, Menlo, monospace;
+  font-size: 0.68rem;
+  letter-spacing: 0.03em;
+  line-height: 1.3;
+  color: var(--text-light-muted);
+  border: 1px solid var(--line);
+  border-radius: 5px;
+  padding: 0.3rem 0.5rem;
+}
+.arch-layer strong { color: var(--ink); font-weight: 600; }
+.arch-layer--bronze { border-left: 3px solid var(--bronze); }
+.arch-layer--bronze strong { color: var(--bronze); }
+.arch-layer--silver { border-left: 3px solid var(--silver); }
+.arch-layer--silver strong { color: var(--silver); }
+.arch-layer--gold { border-left: 3px solid var(--gold); }
+.arch-layer--gold strong { color: var(--gold); }
+
+.point-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 1.5rem;
+  margin-top: 2rem;
+}
+.point-card {
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  padding: 1.4rem 1.5rem;
+  background: var(--paper);
+  transition: transform .2s ease, box-shadow .2s ease;
+}
+.point-card b,
+.point-card strong { color: var(--ink); font-weight: 600; }
+
+/* ===== Dashboard band (dark) ========================================== */
+.filter-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.6rem;
+  margin: 2rem 0 1.75rem;
+}
+.pill {
+  font-family: 'IBM Plex Mono', ui-monospace, SFMono-Regular, Menlo, monospace;
+  font-size: 0.72rem;
+  letter-spacing: 0.04em;
+  color: var(--text-dark-muted);
+  border: 1px solid rgba(174, 182, 189, 0.28);
+  border-radius: 999px;
+  padding: 0.32em 0.9em;
+  white-space: nowrap;
+}
+
+.dash-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 1.5rem;
+}
+.panel-card--full { grid-column: 1 / -1; }
+
+.panel-card {
+  background: var(--panel);
+  border: 1px solid rgba(174, 182, 189, 0.16);
+  border-radius: 8px;
+  padding: 1.25rem 1.35rem 1.4rem;
+  box-shadow: 0 10px 30px rgba(14, 27, 44, 0.28);
+}
+.panel-head {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 1rem;
+  font-family: 'IBM Plex Mono', ui-monospace, SFMono-Regular, Menlo, monospace;
+  font-size: 0.72rem;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: var(--text-dark-muted);
+  padding-bottom: 0.85rem;
+  margin-bottom: 1.1rem;
+  border-bottom: 1px solid rgba(174, 182, 189, 0.16);
+}
+.panel-head .panel-head-meta { font-weight: 400; opacity: 0.85; }
+
+/* KPI tiles */
+.kpi-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 1rem;
+}
+.kpi-tile {
+  flex: 1 1 120px;
+  min-width: 120px;
+}
+.kpi-value {
+  font-family: 'IBM Plex Mono', ui-monospace, SFMono-Regular, Menlo, monospace;
+  font-size: 1.9rem;
+  font-weight: 500;
+  line-height: 1.1;
+  color: var(--paper);
+  letter-spacing: -0.01em;
+}
+.kpi-label {
+  font-size: 0.68rem;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  color: var(--text-dark-muted);
+  margin-top: 0.35rem;
+}
+.chip {
+  display: inline-block;
+  font-family: 'IBM Plex Mono', ui-monospace, SFMono-Regular, Menlo, monospace;
+  font-size: 0.68rem;
+  letter-spacing: 0.03em;
+  margin-top: 0.5rem;
+}
+.chip--good { color: var(--signal-bright); }
+.chip--bad  { color: var(--alert-bright); }
+.chip--flat { color: var(--text-dark-muted); }
+
+/* ===== Chart wrappers (fixed heights; pair with maintainAspectRatio:false) */
+.chart-wrap {
+  position: relative;
+  height: 300px;
+  width: 100%;
+}
+.chart-wrap--spark  { height: 56px; }
+.chart-wrap--spc    { height: 320px; }
+.chart-wrap--pareto { height: 300px; }
+.chart-wrap--aging  { height: 260px; }
+.chart-wrap canvas {
+  position: absolute;
+  inset: 0;
+  width: 100% !important;
+  height: 100% !important;
+}
+
+.spark-bar {
+  font-family: 'IBM Plex Mono', ui-monospace, SFMono-Regular, Menlo, monospace;
+  font-size: 0.72rem;
+  color: var(--text-dark-muted);
+  letter-spacing: 0.02em;
+  margin-top: 0.75rem;
+}
+
+/* ===== SPC ============================================================== */
+.spc-limits {
+  font-family: 'IBM Plex Mono', ui-monospace, SFMono-Regular, Menlo, monospace;
+  font-size: 0.72rem;
+  letter-spacing: 0.04em;
+  color: var(--text-dark-muted);
+  margin-top: 0.75rem;
+}
+.spc-note {
+  font-size: 0.82rem;
+  color: var(--alert-bright);
+  margin-top: 0.4rem;
+}
+
+/* ===== Audit table ===================================================== */
+.audit-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-family: 'IBM Plex Mono', ui-monospace, SFMono-Regular, Menlo, monospace;
+  font-size: 0.82rem;
+}
+.audit-table th,
+.audit-table td {
+  padding: 0.55rem 0.4rem;
+  border-bottom: 1px solid rgba(174, 182, 189, 0.16);
+  text-align: right;
+  color: var(--paper);
+}
+.audit-table th {
+  font-weight: 500;
+  text-align: right;
+  color: var(--text-dark-muted);
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  font-size: 0.7rem;
+}
+.audit-table th:first-child,
+.audit-table td:first-child {
+  text-align: left;
+  color: var(--text-dark-muted);
+}
+.audit-table tr:last-child td { border-bottom: none; }
+.audit-ok { color: var(--signal-bright); }
+
+/* ===== Captions ======================================================== */
+.chart-caption {
+  font-size: 0.82rem;
+  color: var(--text-dark-muted);
+  margin-top: 0.75rem;
+}
+.sample-note {
+  font-size: 0.8rem;
+  font-style: italic;
+  color: var(--text-dark-muted);
+  opacity: 0.85;
+  margin-top: 2rem;
+}
+
+/* ===== Options ========================================================= */
+.option-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 1.5rem;
+  margin-top: 2.5rem;
+  align-items: start;
+}
+.option-card {
+  position: relative;
+  border: 1px solid var(--line);
+  border-radius: 10px;
+  padding: 1.75rem 1.6rem;
+  background: var(--paper);
+  transition: transform .2s ease, box-shadow .2s ease;
+}
+.option-card--recommended {
+  border: 2px solid var(--signal);
+  box-shadow: 0 12px 32px rgba(46, 204, 113, 0.14);
+}
+.badge {
+  position: absolute;
+  top: -0.75rem;
+  left: 1.6rem;
+  font-family: 'IBM Plex Mono', ui-monospace, SFMono-Regular, Menlo, monospace;
+  font-size: 0.66rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.1em;
+  background: var(--signal);
+  color: var(--ink);
+  padding: 0.35em 0.8em;
+  border-radius: 4px;
+}
+.option-card h3 { margin-top: 0.25rem; }
+.option-card ul {
+  list-style: none;
+  margin: 1rem 0 1.25rem;
+  padding: 0;
+}
+.option-card li {
+  position: relative;
+  padding-left: 1.3em;
+  margin-bottom: 0.55rem;
+  font-size: 0.95rem;
+  color: var(--text-light-muted);
+}
+.option-card li::before {
+  content: "";
+  position: absolute;
+  left: 0;
+  top: 0.62em;
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: var(--signal);
+}
+.option-foot {
+  font-size: 0.85rem;
+  color: var(--text-light-muted);
+  margin-top: auto;
+}
+.option-foot b { color: var(--ink); font-weight: 600; }
+
+/* ===== Sign-off ======================================================== */
+.signoff {
+  font-family: 'IBM Plex Mono', ui-monospace, SFMono-Regular, Menlo, monospace;
+  font-size: 0.8rem;
+  letter-spacing: 0.04em;
+  color: var(--text-dark-muted);
+  margin-top: 2rem;
+}
+
+/* ===== Hover lift ====================================================== */
+.point-card, .option-card {
+  transition: transform .2s ease, box-shadow .2s ease;
+}
+.point-card:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 10px 26px rgba(14, 27, 44, 0.1);
+}
+.option-card:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 14px 34px rgba(14, 27, 44, 0.12);
+}
+
+/* ===== Focus ============================================================ */
+:focus-visible {
+  outline: 2px solid var(--accent-deep);
+  outline-offset: 2px;
+}
+.band--dark a:focus-visible,
+.band--dark .btn:focus-visible,
+.status-strip a:focus-visible,
+.btn:focus-visible {
+  outline: 2px solid var(--signal);
+  outline-offset: 2px;
+}
+
+/* ===== Responsive ====================================================== */
+@media (max-width: 767px) {
+  .section { padding: 64px 0; }
+
+  .point-grid { grid-template-columns: 1fr; }
+  .dash-grid { grid-template-columns: 1fr; }
+  .option-grid { grid-template-columns: 1fr; }
+
+  .arch { flex-direction: column; }
+  .arch-arrow {
+    transform: rotate(90deg);
+    padding: 0.5rem 0;
+  }
+
+  .status-strip { font-size: 0.6rem; letter-spacing: 0.08em; }
+}
+
+/* ===== Motion ========================================================== */
+@media (prefers-reduced-motion: reduce) {
+  html { scroll-behavior: auto; }
+  .status-dot { animation: none; }
+  *, *::before, *::after {
+    transition-duration: .01ms !important;
+    animation-duration: .01ms !important;
+    animation-iteration-count: 1 !important;
+    scroll-behavior: auto !important;
+  }
+}
+
+</style>
+</head>
+<body>
+
+<div class="status-strip">QMS DATA · SMARTSOLVE → DASHBOARDS · LAST REFRESH 06:00 · ALL SYSTEMS IN CONTROL <span class="status-dot" aria-hidden="true"></span></div>
+
+<section class="band--dark section" id="top">
+  <div class="container">
+    <p class="eyebrow">— SMARTSOLVE eQMS · GOVERNED QUALITY DATA · DASHBOARDS</p>
+    <h1 class="hero-headline">Your quality data already tells the story. Right now, nobody reads it until month-end.</h1>
+    <p class="hero-sub">Every complaint, nonconformance, CAPA, and audit finding you've ever recorded is sitting in SmartSolve. This is the plan for getting it out, organized, and visible soon enough to act on — starting as small as one table.</p>
+    <a class="btn" href="#unlocks">See what it unlocks ↓</a>
+  </div>
+</section>
+
+<section class="band--light section">
+  <div class="container">
+    <p class="eyebrow">— 01 · OVERVIEW</p>
+    <h2>The most expensive report isn't the one that takes hours. It's the one that's a month late.</h2>
+    <p>Today, answering a simple question — <em>how are complaints trending against last year?</em> — means someone exports from SmartSolve, cleans it in Excel, builds a chart, and pastes it into a deck. Next month, they do it again. The data was right there the whole time; the work is in the retrieval.</p>
+    <p>One governed home for that data changes the default. SmartSolve stays the system of record — nothing about how your team logs complaints, NCs, or CAPAs changes. But every night, the data lands in one governed place, modeled once, so downstream reporting can refresh automatically instead of being rebuilt each month.</p>
+    <p>The hours are real — but they're not the risk. The risk is cadence. When trending is a month-end exercise, a complaint signal can sit unseen for thirty days before anyone charts it. The bigger risk isn't generating the report — it's recognizing a signal later than you could have. A nightly refresh turns <em>how many NCs did we open yesterday?</em> into a question with an answer this morning — and turns "show me your complaint trending" from a two-week scramble into something you pull up during the inspection.</p>
+  </div>
+</section>
+
+<section class="band--light section">
+  <div class="container">
+    <p class="eyebrow">— 02 · INTEGRATION</p>
+    <h2>SmartSolve to dashboards: a well-worn path, not a science project.</h2>
+    <p>SmartSolve stores structured quality records — complaints, nonconformances, CAPAs, audits, change control, training. The integration reads them on a nightly schedule — read-only, no writes back to SmartSolve — checks the data on every load, and organizes it into governed, documented quality data ready for dashboards and reporting, in Power BI or the analytics tools you already use.</p>
+    <p>Whether you already have a data platform or you're starting with SmartSolve and Excel, the approach can fit your existing environment and IT standards — anything new gets built with your IT team, not around them.</p>
+    <div class="arch">
+      <div class="arch-node"><div class="arch-node-title">SmartSolve eQMS</div><div class="arch-node-sub">system of record</div></div>
+      <div class="arch-arrow" aria-hidden="true">→</div>
+      <div class="arch-node"><div class="arch-node-title">Read-only extraction</div><div class="arch-node-sub">scheduled · no writes back</div></div>
+      <div class="arch-arrow" aria-hidden="true">→</div>
+      <div class="arch-node arch-node--warehouse">
+        <div class="arch-node-title">Governed quality data</div>
+        <div class="arch-node-sub">organized, documented, traceable</div>
+        <div class="arch-layers">
+          <div class="arch-layer arch-layer--bronze"><strong>Bronze</strong> · raw</div>
+          <div class="arch-layer arch-layer--silver"><strong>Silver</strong> · modeled</div>
+          <div class="arch-layer arch-layer--gold"><strong>Gold</strong> · analytics</div>
+        </div>
+      </div>
+      <div class="arch-arrow" aria-hidden="true">→</div>
+      <div class="arch-node"><div class="arch-node-title">Analytics</div><div class="arch-node-sub">dashboards &amp; self-serve · e.g. Power BI</div></div>
+    </div>
+    <div class="point-grid">
+      <div class="point-card"><strong>Read-only by design.</strong> The pipeline reads from SmartSolve and never writes back, minimizing impact to the validated environment. Validation and change-control requirements are handled within your existing procedures.</div>
+      <div class="point-card"><strong>Trending that holds up.</strong> Trending is built from the SmartSolve records themselves, refreshed nightly — every number traceable back to its source. And when a question calls for deeper history, SmartSolve's own audit trail is there to reconstruct it.</div>
+      <div class="point-card"><strong>One number, every room.</strong> Core quality metrics — open CAPAs, complaint rates, NC aging — carry shared, governed definitions, so Quality, Operations, and leadership reporting all show the same figure. Management review starts at "why is it trending," not twenty minutes of "whose number is right."</div>
+      <div class="point-card"><strong>Validated your way, owned by you.</strong> Validation documentation and testing are developed to support your existing software validation SOP — protocol, test scripts, evidence — with your team owning the approval and validation record. No vendor black box — the implementation and documentation are yours.</div>
+    </div>
+  </div>
+</section>
+
+<section class="band--dark section" id="unlocks">
+  <div class="container">
+    <p class="eyebrow">— 03 · WHAT IT UNLOCKS</p>
+    <h2>Dashboards that answer before you ask.</h2>
+    <p>Illustrative views built on the SmartSolve data model — your data, once connected, drops into layouts like these.</p>
+    <p class="sample-note">Sample data for illustration.</p>
+
+    <div class="filter-row" aria-hidden="true"><span class="pill">Site: All ▾</span><span class="pill">Product Line: All ▾</span><span class="pill">Date: Trailing 24 mo ▾</span></div>
+
+    <div class="dash-grid">
+
+      <div class="panel-card panel-card--full">
+        <div class="panel-head"><span>DAILY QUALITY STATUS</span><span>LAST REFRESH 06:00</span></div>
+        <div class="kpi-row"><div class="kpi-tile"><div class="kpi-value">47</div><div class="kpi-label">Open Complaints</div><div class="chip chip--good">▼ 6 vs last week</div></div><div class="kpi-tile"><div class="kpi-value">31</div><div class="kpi-label">Open NCs</div><div class="chip chip--bad">▲ 3 vs last week</div></div><div class="kpi-tile"><div class="kpi-value">12</div><div class="kpi-label">Open CAPAs</div><div class="chip chip--flat">— flat</div></div><div class="kpi-tile"><div class="kpi-value">3</div><div class="kpi-label">CAPAs Overdue</div><div class="chip chip--bad">▲ 1</div></div><div class="kpi-tile"><div class="kpi-value">28.4</div><div class="kpi-label">Avg. Days to Complaint Closure</div><div class="chip chip--good">▼ 2.1</div></div></div>
+        <div class="spark-bar"><span>Records updated in last 24h: 63</span></div>
+        <div class="chart-wrap chart-wrap--spark"><canvas id="spark-daily"></canvas></div>
+      </div>
+
+      <div class="panel-card">
+        <div class="panel-head"><span>COMPLAINTS · C-CHART · MONTHLY · TRAILING 24 MO</span><span>LAST REFRESH 06:00</span></div>
+        <div class="spc-limits">CL 32 · UCL 49 · LCL 15</div>
+        <div class="chart-wrap chart-wrap--spc"><canvas id="chart-spc"></canvas></div>
+        <p class="spc-note">Signal — investigated: supplier lot issue, CAPA-2025-041</p>
+        <p class="chart-caption">Statistical control limits recalculated automatically. Signals annotated and linked to the CAPA record — trending stops being a quarterly Excel exercise.</p>
+      </div>
+
+      <div class="panel-card">
+        <div class="panel-head"><span>NONCONFORMANCES · PARETO · YTD</span><span>LAST REFRESH 06:00</span></div>
+        <div class="chart-wrap chart-wrap--pareto"><canvas id="chart-pareto"></canvas></div>
+        <p class="chart-caption">Top two categories drive 56% of NCs — giving the team an immediate starting point for investigation and prioritization.</p>
+      </div>
+
+      <div class="panel-card">
+        <div class="panel-head"><span>CAPA · AGING BY PHASE</span><span>LAST REFRESH 06:00</span></div>
+        <div class="chart-wrap chart-wrap--aging"><canvas id="chart-aging"></canvas></div>
+        <p class="chart-caption">The three 90+ day records are visible daily — not discovered at management review.</p>
+      </div>
+
+      <div class="panel-card">
+        <div class="panel-head"><span>AUDIT · READINESS</span><span>LAST REFRESH 06:00</span></div>
+        <table class="audit-table"><tr><td>Overdue training records</td><td>4</td></tr><tr><td>CAPAs pending effectiveness check</td><td>2</td></tr><tr><td>Complaints open &gt; 90 days</td><td>1</td></tr><tr><td>NCs without disposition</td><td class="audit-ok">0 ✓</td></tr></table>
+        <p class="chart-caption">The pre-audit scramble, replaced by a list that's always current.</p>
+      </div>
+
+    </div>
+  </div>
+</section>
+
+
+<section class="band--light section">
+  <div class="container">
+    <p class="eyebrow">— 04 · WHY THIS APPROACH</p>
+    <h2>Built from the Quality side, not just the IT side.</h2>
+    <p>I've worked directly with medical-device quality systems, complaint and nonconformance data, quality analytics, management reporting, and SmartSolve extraction. The goal isn't simply to move tables. It's to build a quality-data model your team can actually use, understand, and support.</p>
+  </div>
+</section>
+
+<section class="band--light section">
+  <div class="container">
+    <p class="eyebrow">— 05 · ENGAGEMENT OPTIONS</p>
+    <h2>Start as small as one table.</h2>
+    <p>Three ways to work together, in increasing scope. Each one stands alone, and each one is a sensible on-ramp to the next.</p>
+    <div class="option-grid">
+      <div class="option-card">
+        <p class="eyebrow">TEACH</p>
+        <p class="option-tagline">Your team drives. I navigate.</p>
+        <p>We pull <strong>one table</strong> from SmartSolve into one governed dataset together — likely complaints or NCs. Your team writes the pipeline with me at the whiteboard: connection, extraction, load pattern, documentation. You end with one working output, a repeatable pattern, and proof the approach works before anyone commits to more.</p>
+        <ul>
+          <li>1 SmartSolve table, landed and refreshing</li>
+          <li>The extraction pattern, documented for reuse</li>
+          <li>Your team able to repeat it for table two</li>
+        </ul>
+        <p class="option-foot">Best if: you have data engineers who need the SmartSolve-specific knowledge, not the labor.</p>
+      </div>
+      <div class="option-card option-card--recommended">
+        <span class="badge">Recommended</span>
+        <p class="eyebrow">COWORK</p>
+        <p class="option-tagline">We build it together.</p>
+        <p>Teach, extended across the full core model. We integrate the tables that matter — complaints, NCs, CAPAs, audits — splitting the work between my hands and yours. I handle the gnarly parts (extraction patterns, status history, data-quality checks, and the SmartSolve schema's quirks); your team builds alongside and owns it from day one.</p>
+        <ul>
+          <li>Core quality tables integrated and modeled</li>
+          <li>Documented, governed data model</li>
+          <li>Knowledge transfer built into every session</li>
+        </ul>
+        <p class="option-foot">Best if: you want the full model <em>and</em> in-house ownership when it's done.</p>
+      </div>
+      <div class="option-card">
+        <p class="eyebrow">DO</p>
+        <p class="option-tagline">Turnkey — pipeline to Power BI.</p>
+        <p>Everything in Cowork, delivered end to end, plus the analytics layer: the dashboards on this page, built on your live data, published to your workspace, with training for the people who'll use them. You show up to the next management review with the deck that builds itself.</p>
+        <ul>
+          <li>Full integration + governed quality data model</li>
+          <li>The Power BI dashboards above, live on your data</li>
+          <li>Automated data-quality checks, with validation coaching to your SOP</li>
+          <li>Handover, documentation, and user training</li>
+        </ul>
+        <p class="option-foot">Best if: you want results by a date, and your team's time is the constraint.</p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<section class="band--dark section">
+  <div class="container">
+    <h2>The data's already there. Let's make it visible.</h2>
+    <p>If this is still a headache for your team, give me 30 minutes and we can walk through one SmartSolve table together and see whether the approach makes sense.</p>
+    <a class="btn" href="mailto:name@firm.com">Pick a starting table</a>
+    <p class="signoff">[Consultant Name] · [Firm] · eQMS data integration & analytics</p>
+  </div>
+</section>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
+<script>
+
+const DATA = {"kpis": [{"label": "Open Complaints", "value": "47", "trend": "\u25bc 6 vs last week", "dir": "good"}, {"label": "Open NCs", "value": "31", "trend": "\u25b2 3 vs last week", "dir": "bad"}, {"label": "Open CAPAs", "value": "12", "trend": "\u2014 flat", "dir": "flat"}, {"label": "CAPAs Overdue", "value": "3", "trend": "\u25b2 1", "dir": "bad"}, {"label": "Avg. Days to Complaint Closure", "value": "28.4", "trend": "\u25bc 2.1", "dir": "good"}], "sparkline": {"values": [41, 55, 38, 62, 47, 12, 9, 58, 61, 44, 70, 52, 15, 63], "caption": "Records updated in last 24h: 63"}, "spc": {"labels": ["Jul '24", "Aug '24", "Sep '24", "Oct '24", "Nov '24", "Dec '24", "Jan '25", "Feb '25", "Mar '25", "Apr '25", "May '25", "Jun '25", "Jul '25", "Aug '25", "Sep '25", "Oct '25", "Nov '25", "Dec '25", "Jan '26", "Feb '26", "Mar '26", "Apr '26", "May '26", "Jun '26"], "values": [29, 34, 27, 31, 38, 30, 25, 33, 53, 51, 36, 28, 31, 24, 35, 29, 33, 26, 30, 37, 28, 32, 27, 25], "cl": 32, "ucl": 49, "lcl": 15, "signal_indices": [8, 9], "annotation": "Signal \u2014 investigated: supplier lot issue, CAPA-2025-041"}, "pareto": {"labels": ["Dimensional", "Labeling", "Packaging", "Documentation", "Supplier", "Other"], "full_labels": ["Dimensional / out-of-spec", "Labeling", "Packaging damage", "Documentation error", "Supplier material", "Other"], "counts": [41, 26, 19, 14, 11, 8]}, "capa_aging": {"phases": ["Investigation", "Root Cause", "Action Plan", "Effectiveness Check"], "buckets": ["0\u201330d", "31\u201360d", "61\u201390d", "90+d"], "rows": [[3, 1, 0, 0], [2, 2, 1, 0], [1, 1, 0, 2], [0, 1, 0, 1]]}, "audit": [["Overdue training records", "4"], ["CAPAs pending effectiveness check", "2"], ["Complaints open > 90 days", "1"], ["NCs without disposition", "0 \u2713"]], "filters": ["Site: All \u25be", "Product Line: All \u25be", "Date: Trailing 24 mo \u25be"]};
+
+// --- helpers -------------------------------------------------------------
+// Read a CSS custom property off :root at runtime (colors live in CSS, never
+// hardcoded here).
+function cssVar(n){ return getComputedStyle(document.documentElement).getPropertyValue(n).trim(); }
+
+// Build an rgba() from a #rrggbb (or #rgb) hex plus alpha. Used only to derive
+// subtle grid lines from an existing CSS color -- not to introduce new colors.
+function hexToRgba(hex, a){
+  if (!hex) return 'rgba(255,255,255,' + a + ')';
+  hex = hex.replace('#','');
+  if (hex.length === 3){ hex = hex[0]+hex[0]+hex[1]+hex[1]+hex[2]+hex[2]; }
+  var n = parseInt(hex, 16);
+  if (isNaN(n)) return 'rgba(255,255,255,' + a + ')';
+  var r = (n >> 16) & 255, g = (n >> 8) & 255, b = n & 255;
+  return 'rgba(' + r + ',' + g + ',' + b + ',' + a + ')';
+}
+
+// Guard: if Chart.js failed to load (e.g. offline), warn once and skip all
+// chart building. The page must still render with empty canvases, no throws.
+if (typeof Chart === 'undefined') {
+  console.warn('Chart.js not loaded');
+} else {
+
+  // --- global defaults ---------------------------------------------------
+  Chart.defaults.font.family = "'IBM Plex Mono', ui-monospace, monospace";
+  Chart.defaults.font.size = 11;
+  Chart.defaults.color = cssVar('--text-dark-muted');
+
+  var GRID = hexToRgba(cssVar('--line'), 0.18);
+
+  // Each builder guards itself so it only ever builds once.
+  var built = {};
+
+  // --- 4.1 Daily volume sparkline ---------------------------------------
+  function buildSparkline(){
+    if (built['spark-daily']) return;
+    var el = document.getElementById('spark-daily');
+    if (!el) return;
+    built['spark-daily'] = true;
+    var vals = DATA.sparkline.values;
+    new Chart(el, {
+      type: 'line',
+      data: {
+        labels: vals.map(function(_, i){ return i; }),
+        datasets: [{
+          data: vals,
+          borderColor: cssVar('--signal'),
+          backgroundColor: hexToRgba(cssVar('--signal'), 0.14),
+          borderWidth: 1.5,
+          pointRadius: 0,
+          tension: 0.3,
+          fill: true
+        }]
+      },
+      options: {
+        responsive: true,
+        maintainAspectRatio: false,
+        plugins: { legend: { display: false }, tooltip: { enabled: false } },
+        scales: { x: { display: false }, y: { display: false } }
+      }
+    });
+  }
+
+  // --- 4.2 SPC c-chart ---------------------------------------------------
+  function buildSpc(){
+    if (built['chart-spc']) return;
+    var el = document.getElementById('chart-spc');
+    if (!el) return;
+    built['chart-spc'] = true;
+    var spc = DATA.spc;
+    var n = spc.values.length;
+    // Per-point color: signal points lavender, all others emerald.
+    var pc = spc.values.map(function(v, i){
+      return spc.signal_indices.indexOf(i) !== -1 ? cssVar('--alert-mid') : cssVar('--signal');
+    });
+    var pr = spc.values.map(function(v, i){
+      return spc.signal_indices.indexOf(i) !== -1 ? 5 : 3;
+    });
+    function limit(val){
+      return {
+        data: Array(n).fill(val),
+        borderColor: cssVar('--line'),
+        borderDash: [6, 4],
+        borderWidth: 1,
+        pointRadius: 0,
+        fill: false,
+        tension: 0
+      };
+    }
+    new Chart(el, {
+      type: 'line',
+      data: {
+        labels: spc.labels,
+        datasets: [
+          {
+            label: 'Complaints',
+            data: spc.values,
+            borderColor: cssVar('--signal'),
+            borderWidth: 2,
+            tension: 0,
+            pointRadius: pr,
+            pointBackgroundColor: pc,
+            pointBorderColor: pc
+          },
+          limit(spc.cl),
+          limit(spc.ucl),
+          limit(spc.lcl)
+        ]
+      },
+      options: {
+        responsive: true,
+        maintainAspectRatio: false,
+        plugins: {
+          legend: { display: false },
+          tooltip: {
+            filter: function(item){ return item.datasetIndex === 0; }
+          }
+        },
+        scales: {
+          x: { grid: { color: GRID } },
+          y: {
+            suggestedMin: 0,
+            suggestedMax: 60,
+            grid: { color: GRID }
+          }
+        }
+      }
+    });
+  }
+
+  // --- 4.3 NC Pareto -----------------------------------------------------
+  function buildPareto(){
+    if (built['chart-pareto']) return;
+    var el = document.getElementById('chart-pareto');
+    if (!el) return;
+    built['chart-pareto'] = true;
+    var p = DATA.pareto;
+    var total = p.counts.reduce(function(a, b){ return a + b; }, 0);
+    var running = 0;
+    var cum = p.counts.map(function(c){
+      running += c;
+      return total ? (running / total) * 100 : 0;
+    });
+    var barColors = p.counts.map(function(c, i){
+      return i === 0 ? cssVar('--signal') : cssVar('--accent-blue');
+    });
+    new Chart(el, {
+      data: {
+        labels: p.labels,
+        datasets: [
+          {
+            type: 'bar',
+            label: 'Count',
+            data: p.counts,
+            backgroundColor: barColors,
+            borderWidth: 0,
+            order: 2,
+            yAxisID: 'y'
+          },
+          {
+            type: 'line',
+            label: 'Cumulative %',
+            data: cum,
+            borderColor: cssVar('--signal'),
+            backgroundColor: cssVar('--signal'),
+            borderWidth: 2,
+            pointRadius: 3,
+            tension: 0,
+            fill: false,
+            order: 1,
+            yAxisID: 'y1'
+          }
+        ]
+      },
+      options: {
+        responsive: true,
+        maintainAspectRatio: false,
+        plugins: {
+          legend: { display: false },
+          tooltip: {
+            callbacks: {
+              title: function(items){
+                if (!items.length) return '';
+                return p.full_labels[items[0].dataIndex];
+              }
+            }
+          }
+        },
+        scales: {
+          x: { grid: { color: GRID } },
+          y: {
+            beginAtZero: true,
+            grid: { color: GRID }
+          },
+          y1: {
+            position: 'right',
+            min: 0,
+            max: 100,
+            grid: { drawOnChartArea: false },
+            ticks: { callback: function(v){ return v + '%'; } }
+          }
+        }
+      }
+    });
+  }
+
+  // --- 4.4 CAPA aging (stacked horizontal) -------------------------------
+  function buildAging(){
+    if (built['chart-aging']) return;
+    var el = document.getElementById('chart-aging');
+    if (!el) return;
+    built['chart-aging'] = true;
+    var a = DATA.capa_aging;
+    var bucketVars = ['--signal', '--signal-deep', '--accent-blue', '--alert-mid'];
+    // Transpose rows (per-phase) into one dataset per age bucket.
+    var datasets = a.buckets.map(function(bucketLabel, b){
+      return {
+        label: bucketLabel,
+        data: a.rows.map(function(row){ return row[b]; }),
+        backgroundColor: cssVar(bucketVars[b]),
+        borderWidth: 0
+      };
+    });
+    new Chart(el, {
+      type: 'bar',
+      data: { labels: a.phases, datasets: datasets },
+      options: {
+        indexAxis: 'y',
+        responsive: true,
+        maintainAspectRatio: false,
+        plugins: {
+          legend: {
+            display: true,
+            position: 'bottom',
+            labels: { font: { family: "'IBM Plex Mono', ui-monospace, monospace" } }
+          }
+        },
+        scales: {
+          x: { stacked: true, beginAtZero: true, grid: { color: GRID } },
+          y: { stacked: true, grid: { color: GRID } }
+        }
+      }
+    });
+  }
+
+  // --- init / motion -----------------------------------------------------
+  var BUILDERS = {
+    'spark-daily': buildSparkline,
+    'chart-spc': buildSpc,
+    'chart-pareto': buildPareto,
+    'chart-aging': buildAging
+  };
+
+  function init(){
+    var reduce = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+    if (reduce) {
+      // No orchestrated motion: render everything at once, animation off.
+      Chart.defaults.animation = false;
+      Object.keys(BUILDERS).forEach(function(id){ BUILDERS[id](); });
+      return;
+    }
+    if (typeof IntersectionObserver === 'undefined') {
+      // Fallback for very old engines: just build them all now.
+      Object.keys(BUILDERS).forEach(function(id){ BUILDERS[id](); });
+      return;
+    }
+    var observer = new IntersectionObserver(function(entries, obs){
+      entries.forEach(function(entry){
+        if (entry.isIntersecting) {
+          var b = BUILDERS[entry.target.id];
+          if (b) b();
+          obs.unobserve(entry.target);
+        }
+      });
+    }, { threshold: 0.2 });
+    Object.keys(BUILDERS).forEach(function(id){
+      var el = document.getElementById(id);
+      if (el) observer.observe(el);
+    });
+  }
+
+  // Script sits at end of <body>, so the DOM is parsed -- but guard anyway.
+  if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', init);
+  } else {
+    init();
+  }
+}
+
+</script>
+</body>
+</html>
